@@ -1,0 +1,53 @@
+---
+title: "writeup"
+author: "licy07"
+date: "Sunday, May 24, 2015"
+output: html_document
+---
+## Preprocessing
+I found there some vactors both in the test data and the train data that have too many NAs. And there are description vectors that description the subject name and time of the data. These vactor can do nothing good to my model. So i spamed them.
+```
+setwd("F:/study/DataScience/Practical Machine Learning/courseproject")
+training<-read.csv("pml-training.csv")
+testing<-read.csv("pml-testing.csv")
+newTesting<-testing[,colMeans(is.na(testing))<0.9]
+newTesting<-newTesting[,-1:-7]
+newTraining<-training[,colMeans(is.na(testing))<0.9]
+newTraining<-newTraining[,-1:-7]
+```
+## Modeling
+After modeling, I need to caculate the out of sample error of the model, so I split the "newTraining" data to train and test data.
+```
+library("caret")
+# split the training data to caculate the out of sample error
+set.seed(66755)
+inTrain <- createDataPartition (y=newTraining$classe,p=0.7, list=FALSE)
+train<-newTraining[inTrain,]
+test<-newTraining[-inTrain,]
+```
+Because of the characteristic noise in the sensor data, a Random Forest approach is used. When I train the model, I used 10 fold cross validation.
+```
+trControl<-trainControl(method="cv",number=10)
+modFit<-train(classe~.,data=train,method="rf",trControl=trControl)
+predictions<-predict(modFit,test)
+```
+Test the out of sample error
+```{r}
+mean(predictions==test$classe)
+```
+I also tried the boot method to validation the model
+
+```
+deformodFit<-train(classe~.,data=train,method="rf")
+deforpredictions<-predict(deformodFit,test)
+mean(deforpredictions==test$classe)
+```
+I got the out sample error is 0.993373.
+I think the out of sample error didn't come from overfitting. The Weight Lifting state "A B C D E" can't be decided by one time point data, it is a process of movement, and we should extract the feature vector from time series data.
+
+Predict the test data
+```{r}
+predict(modFit,newTesting)
+```
+
+
